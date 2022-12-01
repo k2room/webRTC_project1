@@ -45,16 +45,16 @@ function init() {
   roomDialog = new mdc.dialog.MDCDialog(document.querySelector("#room-dialog"));
 }
 
+//방 생성시 실행
 async function createRoom() {
   document.querySelector("#createBtn").disabled = true;
   document.querySelector("#joinBtn").disabled = true;
   const db = firebase.firestore();
   const roomRef = await db.collection("rooms").doc();
 
+  // 1과 2, 1과 3 사이의 RTCPeerConnection 생성
   console.log("Create PeerConnection with configuration: ", configuration12);
   peerConnection12 = new RTCPeerConnection(configuration12);
-  console.log("Create PeerConnection with configuration: ", configuration23);
-  peerConnection23 = new RTCPeerConnection(configuration23);
   console.log("Create PeerConnection with configuration: ", configuration31);
   peerConnection31 = new RTCPeerConnection(configuration31);
 
@@ -66,7 +66,7 @@ async function createRoom() {
     peerConnection31.addTrack(track, localStream);
   });
 
-  // Code for collecting ICE candidates below
+  // Code for collecting ICE candidates below (1-2, 1-3)
   const callerCandidatesCollection12 = roomRef.collection("callerCandidate12");
   peerConnection12.addEventListener("icecandidate", (event) => {
     if (!event.candidate) {
@@ -76,9 +76,7 @@ async function createRoom() {
     console.log("Got candidate: ", event.candidate);
     callerCandidatesCollection12.add(event.candidate.toJSON());
   });
-  // Code for collecting ICE candidates above
 
-  //peer31
   const callerCandidatesCollection31 = roomRef.collection("callerCandidate31");
   peerConnection31.addEventListener("icecandidate", (event) => {
     if (!event.candidate) {
@@ -90,15 +88,7 @@ async function createRoom() {
   });
   // Code for collecting ICE candidates above
 
-  peerConnection31.addEventListener("track", (event) => {
-    console.log("Got remote3 track:", event.streams[0]);
-    event.streams[0].getTracks().forEach((track) => {
-      console.log("Add a track to the remoteStreamB:", track);
-      remoteStreamB.addTrack(track);
-    });
-  });
-
-  // Code for creating a room below
+  // Code for creating a room and offer from 1 below
   const offer12 = await peerConnection12.createOffer();
   await peerConnection12.setLocalDescription(offer12);
   console.log("Created offer12:", offer12);
@@ -125,13 +115,22 @@ async function createRoom() {
   document.querySelector(
     "#currentRoom"
   ).innerText = `Current room is ${roomRef.id} - You are the caller!`;
-  // Code for creating a room above
+  // Code for creating a room and offer from 1 above
 
+  // remoteVideo 두 개에 track 할당
   peerConnection12.addEventListener("track", (event) => {
-    console.log("Got remote2 track:", event.streams[0]);
+    console.log("Got remoteA track:", event.streams[0]);
     event.streams[0].getTracks().forEach((track) => {
       console.log("Add a track to the remoteStreamA:", track);
       remoteStreamA.addTrack(track);
+    });
+  });
+
+  peerConnection31.addEventListener("track", (event) => {
+    console.log("Got remoteB track:", event.streams[0]);
+    event.streams[0].getTracks().forEach((track) => {
+      console.log("Add a track to the remoteStreamB:", track);
+      remoteStreamB.addTrack(track);
     });
   });
 
@@ -139,18 +138,16 @@ async function createRoom() {
   roomRef.onSnapshot(async (snapshot) => {
     const data = snapshot.data();
     if (!peerConnection12.currentRemoteDescription && data && data.answer2to1) {
-      console.log("Got remote2 description: ", data.answer2to1);
+      console.log("Got remoteA description: ", data.answer2to1);
       const rtcSessionDescription = new RTCSessionDescription(data.answer2to1);
       await peerConnection12.setRemoteDescription(rtcSessionDescription);
     }
   });
-  // Listening for remote session description above
 
-  // Listening for remote session description below
   roomRef.onSnapshot(async (snapshot) => {
     const data = snapshot.data();
     if (!peerConnection31.currentRemoteDescription && data && data.answer3to1) {
-      console.log("Got remote3 description: ", data.answer3to1);
+      console.log("Got remoteB description: ", data.answer3to1);
       const rtcSessionDescription = new RTCSessionDescription(data.answer3to1);
       await peerConnection31.setRemoteDescription(rtcSessionDescription);
     }
@@ -158,7 +155,6 @@ async function createRoom() {
   // Listening for remote session description above
 
   // Listen for remote ICE candidates below
-
   roomRef.collection("calleeCandidate12").onSnapshot((snapshot) => {
     snapshot.docChanges().forEach(async (change) => {
       if (change.type === "added") {
@@ -181,6 +177,7 @@ async function createRoom() {
   // Listen for remote ICE candidates above
 }
 
+// join 시 실행
 function joinRoom() {
   document.querySelector("#createBtn").disabled = true;
   document.querySelector("#joinBtn").disabled = true;
@@ -200,20 +197,23 @@ function joinRoom() {
   roomDialog.open();
 }
 
+// room ID로 방 들어가기
 async function joinRoomById(roomId) {
+
+  //fireStore에서 roomID로 DB를 가져온다.
   const db = firebase.firestore();
   const roomRef = db.collection("rooms").doc(`${roomId}`);
   const roomSnapshot = await roomRef.get();
   console.log("Got room:", roomSnapshot.exists);
 
+  //roomID를 정확히 입력했을 때
   if (roomSnapshot.exists) {
+    //해당 room에 처음 join한 유저의 userID=2(유저2), 세 번째로 join한 유저의 userID=3(유저3)
     let userID = 2;
     const exists2 = roomSnapshot.data().answer2to1;
     if (exists2 != undefined) {
       userID = 3;
     }
-
-    console.log("!!!!your ID: !!!!", userID);
 
     let configuration = null;
     if (userID == 2) {
@@ -222,6 +222,7 @@ async function joinRoomById(roomId) {
       configuration = configuration31;
     }
 
+    // 유저1과의 연결에 사용될 RTCPeerConnection을 만든다.
     console.log("Create PeerConnection with configuration: ", configuration);
     let peerConnectionWith1 = new RTCPeerConnection(configuration);
     registerPeerConnectionListeners(peerConnectionWith1);
@@ -229,8 +230,8 @@ async function joinRoomById(roomId) {
       peerConnectionWith1.addTrack(track, localStream);
     });
 
-    // Code for collecting ICE candidates below
-    // 1과 연결 -----
+    // 유저1과 연결 -----
+    // Code for collecting ICE callee candidates below
     if (userID == 2) {
       const calleeCandidatesCollection12 =
         roomRef.collection("calleeCandidate12");
@@ -256,6 +257,7 @@ async function joinRoomById(roomId) {
     }
     // Code for collecting ICE candidates above
 
+    // 유저1(방장)의 비디오는 remoteStreamA에 송출한다.
     peerConnectionWith1.addEventListener("track", (event) => {
       console.log("Got remote track:", event.streams[0]);
       event.streams[0].getTracks().forEach((track) => {
@@ -264,10 +266,11 @@ async function joinRoomById(roomId) {
       });
     });
 
+    // userID에 따라 유저1에 응답 answer보내기 + callerCandidate에 유저1 추가
     // Code for creating SDP answer below
-    // userID에 따라 1에 응답 answer보내기 + callerCandidate에 추가
     let offer = null;
     if (userID == 2) {
+
       offer = roomSnapshot.data().offer1to2;
       console.log("Got offer:", offer);
       await peerConnectionWith1.setRemoteDescription(
@@ -317,15 +320,18 @@ async function joinRoomById(roomId) {
         snapshot.docChanges().forEach(async (change) => {
           if (change.type === "added") {
             let data = change.doc.data();
-            console.log(`Got new remote ICE candidate: ${JSON.stringify(data)}`);
-            await peerConnectionWith1.addIceCandidate(new RTCIceCandidate(data));
+            console.log(
+              `Got new remote ICE candidate: ${JSON.stringify(data)}`
+            );
+            await peerConnectionWith1.addIceCandidate(
+              new RTCIceCandidate(data)
+            );
           }
         });
       });
-
     }
 
-    // 2와 3끼리 연결하는 RTCConnection 연결
+    // 2와 3끼리 연결하는 RTCConnection 생성
     console.log("Create PeerConnection with configuration: ", configuration23);
     peerConnection23 = new RTCPeerConnection(configuration23);
     registerPeerConnectionListeners(peerConnection23);
@@ -334,9 +340,12 @@ async function joinRoomById(roomId) {
     });
 
     console.log("!!!!your ID: !!!!", userID);
-    
+
     if (userID == 2) {
-      const callerCandidatesCollection23 = roomRef.collection("callerCandidate23");
+
+      // caller candidate에 유저2 추가
+      const callerCandidatesCollection23 =
+        roomRef.collection("callerCandidate23");
       peerConnection23.addEventListener("icecandidate", (event) => {
         if (!event.candidate) {
           console.log("Got final candidate!");
@@ -346,6 +355,7 @@ async function joinRoomById(roomId) {
         callerCandidatesCollection23.add(event.candidate.toJSON());
       });
 
+      // remoteStreamB에는 유저3 track
       peerConnection23.addEventListener("track", (event) => {
         console.log("Got remote3 track:", event.streams[0]);
         event.streams[0].getTracks().forEach((track) => {
@@ -354,6 +364,7 @@ async function joinRoomById(roomId) {
         });
       });
 
+      // 2가 3에게 보내는 offer 생성
       const offer2to3 = await peerConnection23.createOffer();
       await peerConnection23.setLocalDescription(offer2to3);
       console.log("Created offer23:", offer2to3);
@@ -367,34 +378,35 @@ async function joinRoomById(roomId) {
 
       await roomRef.update(roomWithOfferTo3);
 
-      // Listening for remote session description below
+      // Listening for remote session description below (3에서 2에 보낸 answer을 remoteDescription에 넣는다.)
       roomRef.onSnapshot(async (snapshot) => {
         const data = snapshot.data();
         if (!peerConnection23.currentRemoteDescription && data && data.answer3to2) {
-          console.log("Got remote3 description: ", data.answer3to1);
+          console.log("Got remote3 description: ", data.answer3to2);
           const rtcSessionDescription = new RTCSessionDescription(data.answer3to2);
           await peerConnection23.setRemoteDescription(rtcSessionDescription);
         }
       });
       // Listening for remote session description above
 
-      // Listen for remote ICE candidates below
+      // Listen for remote ICE callee candidates below
       roomRef.collection("calleeCandidate23").onSnapshot((snapshot) => {
         snapshot.docChanges().forEach(async (change) => {
           if (change.type === "added") {
             let data = change.doc.data();
-            console.log(
-              `Got new remote ICE candidate: ${JSON.stringify(data)}`
-            );
+            console.log(`Got new remote ICE candidate: ${JSON.stringify(data)}`);
             await peerConnection23.addIceCandidate(new RTCIceCandidate(data));
           }
         });
       });
-    } else if (userID == 3) {
+      // Listen for remote ICE callee candidates below
 
+
+    } else if (userID == 3) {
+      // callee candidate에 유저3 추가
       const calleeCandidatesCollection23 =
         roomRef.collection("calleeCandidate23");
-        peerConnection23.addEventListener("icecandidate", (event) => {
+      peerConnection23.addEventListener("icecandidate", (event) => {
         if (!event.candidate) {
           console.log("Got final candidate!");
           return;
@@ -403,6 +415,7 @@ async function joinRoomById(roomId) {
         calleeCandidatesCollection23.add(event.candidate.toJSON());
       });
 
+      // remoteStreamB에는 유저2 track
       peerConnection23.addEventListener("track", (event) => {
         console.log("Got remote track:", event.streams[0]);
         event.streams[0].getTracks().forEach((track) => {
@@ -411,10 +424,12 @@ async function joinRoomById(roomId) {
         });
       });
 
-      // Code for creating SDP answer below
+      // Code for creating SDP answer below (2가 3에게 보낸 offer를 받아서 이에 대한 answer를 저장함)
       let offer23 = roomSnapshot.data().offer2to3;
       console.log("Got offer from 2:", offer23);
-      await peerConnection23.setRemoteDescription(new RTCSessionDescription(offer23));
+      await peerConnection23.setRemoteDescription(
+        new RTCSessionDescription(offer23)
+      );
       const answer3to2 = await peerConnection23.createAnswer();
       console.log("Created answer to 2:", answer3to2);
       await peerConnection23.setLocalDescription(answer3to2);
@@ -428,6 +443,7 @@ async function joinRoomById(roomId) {
 
       await roomRef.update(roomWithAnswerTo2);
 
+      // Listen for remote ICE caller candidates below
       roomRef.collection("callerCandidate23").onSnapshot((snapshot) => {
         snapshot.docChanges().forEach(async (change) => {
           if (change.type === "added") {
@@ -437,12 +453,13 @@ async function joinRoomById(roomId) {
           }
         });
       });
+      // Listen for remote ICE caller candidates above
 
     }
-
   }
 }
 
+// 유저의 카메라/오디오를 켰을 때 실행
 async function openUserMedia(e) {
   const stream = await navigator.mediaDevices.getUserMedia({
     video: true,
@@ -462,6 +479,7 @@ async function openUserMedia(e) {
   document.querySelector("#hangupBtn").disabled = false;
 }
 
+// 연결을 끊었을 때 실행
 async function hangUp(e) {
   const tracks = document.querySelector("#localVideo").srcObject.getTracks();
   tracks.forEach((track) => {
@@ -505,8 +523,15 @@ async function hangUp(e) {
       await candidate.ref.delete();
     });
 
-    const calleeCandidate31 = await roomRef
+    const calleeCandidate23 = await roomRef
       .collection("calleeCandidate31")
+      .get();
+    calleeCandidate23.forEach(async (candidate) => {
+      await candidate.ref.delete();
+    });
+
+    const calleeCandidate31 = await roomRef
+      .collection("calleeCandidate23")
       .get();
     calleeCandidate31.forEach(async (candidate) => {
       await candidate.ref.delete();
@@ -516,6 +541,13 @@ async function hangUp(e) {
       .collection("callerCandidate12")
       .get();
     callerCandidate12.forEach(async (candidate) => {
+      await candidate.ref.delete();
+    });
+
+    const callerCandidate23 = await roomRef
+      .collection("callerCandidate23")
+      .get();
+    callerCandidate23.forEach(async (candidate) => {
       await candidate.ref.delete();
     });
 
@@ -531,11 +563,10 @@ async function hangUp(e) {
   document.location.reload(true);
 }
 
+// PeerConnectionListener가 되겠다. (연결을 받아들이겠다.)
 function registerPeerConnectionListeners(peerConnection) {
   peerConnection.addEventListener("icegatheringstatechange", () => {
-    console.log(
-      `ICE gathering state changed: ${peerConnection.iceGatheringState}`
-    );
+    console.log(`ICE gathering state changed: ${peerConnection.iceGatheringState}`);
   });
 
   peerConnection.addEventListener("connectionstatechange", () => {
@@ -547,9 +578,7 @@ function registerPeerConnectionListeners(peerConnection) {
   });
 
   peerConnection.addEventListener("iceconnectionstatechange ", () => {
-    console.log(
-      `ICE connection state change: ${peerConnection.iceConnectionState}`
-    );
+    console.log(`ICE connection state change: ${peerConnection.iceConnectionState}`);
   });
 }
 
