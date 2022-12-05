@@ -42,12 +42,15 @@ let w2 = null;
 let w3 = null;
 let flag_game = false;
 
+var SpeechRecognition = SpeechRecognition || webkitSpeechRecognition
+var SpeechGrammarList = SpeechGrammarList || window.webkitSpeechGrammarList
+var SpeechRecognitionEvent = SpeechRecognitionEvent || webkitSpeechRecognitionEvent
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 // recognition.lang = 'en-US'; //'ko-KR'
 var words = ["gwangju", "science", "work", "study", "college", "team", "startup", "math"];
-
+var colors = [ 'aqua' , 'azure' , 'beige', 'bisque', 'black', 'blue', 'brown', 'chocolate', 'coral', 'crimson', 'cyan', 'fuchsia', 'ghostwhite', 'gold', 'goldenrod', 'gray', 'green', 'indigo'];
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -57,7 +60,7 @@ function init() {
     document.querySelector("#createBtn").addEventListener("click", createRoom);
     document.querySelector("#joinBtn").addEventListener("click", joinRoom);
     document.querySelector("#playBtn").addEventListener("click", playgame);
-    
+    recognite();
     roomDialog = new mdc.dialog.MDCDialog(document.querySelector("#room-dialog"));
 }
 
@@ -582,7 +585,31 @@ async function playgame(PeerConnection) {
 
 }
 
+async function recognite() {
+    var recognition = new SpeechRecognition();
+    if (SpeechGrammarList) {
+    // SpeechGrammarList is not currently available in Safari, and does not have any effect in any other browser.
+    // This code is provided as a demonstration of possible capability. You may choose not to use it.
+    var speechRecognitionList = new SpeechGrammarList();
+    var grammar = '#JSGF V1.0; grammar colors; public <color> = ' + colors.join(' | ') + ' ;'
+    speechRecognitionList.addFromString(grammar, 1);
+    recognition.grammars = speechRecognitionList;
+    }
+    recognition.continuous = false;
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
+    recognition.start();
+    console.log('Ready to receive a color command.')
+
+    recognition.onresult = function(event) {
+        var color = event.results[0][0].transcript;
+        console.log('Confidence: ' + event.results[0][0].confidence);
+    }
+    
+    
+}
 
 // 연결 끊었을 때 실행
 async function hangUp(e) {
