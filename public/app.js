@@ -40,13 +40,11 @@ let userID = null;
 let w1 = null;
 let w2 = null;
 let w3 = null;
-let flag = [0, 0, 0];
-let stop_recog = false;
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 const language = 'en-US'; //'ko-KR'
-const words = ["gwangju", "science", "work", "study", "college", "team", "startup", "math", "Gwangju", "Science", "Work", "Study", "College", "Team", "Startup", "Math"];
+const words = ["gwangju", "science", "work", "study", "college", "team"];
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -62,7 +60,7 @@ let isRecognizing = false;
 let ignoreEndProcess = true;
 let finalTranscript = '';
 
-recognition.continuous = true;
+recognition.continuous = true; ////// true
 recognition.interimResults = true;
 
 
@@ -529,9 +527,7 @@ async function playgame(PeerConnection) {
     flag_game = true;
     document.querySelector("#playBtn").disabled = true;
     document.querySelector("#btn-mic").disabled = false;
-    document.querySelector(
-        "#userid"
-    ).innerText = "Your ID is user" + userID;
+    document.querySelector("#userid").innerText = "Your ID is user" + userID;
 
     // var words = ["gwangju", "science", "work", "study", "college", "team", "startup", "math"]; 
     // userID == 1이면 랜덤리스트 업데이트
@@ -570,11 +566,19 @@ async function playgame(PeerConnection) {
         const roomRef = db.collection("rooms").doc(roomId);
         const roomSnapshot = await roomRef.get();
         if (userID == 2) {
-            const forbidden2 = roomSnapshot.data().word2;
-            console.log(forbidden2);
+            var wordlist = {
+                word1: roomSnapshot.data().word1,
+                word2: roomSnapshot.data().word2,
+                word3: roomSnapshot.data().word3
+            };
+            console.log(wordlist);
         } else if (userID == 3) {
-            const forbidden3 = roomSnapshot.data().word3;
-            console.log(forbidden3);
+            var wordlist = {
+                word1: roomSnapshot.data().word1,
+                word2: roomSnapshot.data().word2,
+                word3: roomSnapshot.data().word3
+            };
+            console.log(wordlist);
         }
     }
     // DB에서 word(금칙어) 불러오기 
@@ -756,14 +760,16 @@ recognition.onresult = function (event) {
             interimTranscript += transcript;
         }
     }
-
-    finalTranscript = capitalize(finalTranscript); // 앞글자 대문자화 취소
-    final_span.innerHTML = linebreak(finalTranscript);
-    interim_span.innerHTML = linebreak(interimTranscript);
-
-    console.log('finalTranscript', finalTranscript);
-    console.log('interimTranscript', interimTranscript);
-    fireCommand(interimTranscript);
+    if(finalTranscript != ''){
+        final_span.innerHTML = linebreak(finalTranscript);
+        console.log('finalTranscript', finalTranscript);
+    }
+    if(interimTranscript != ''){
+        interim_span.innerHTML = linebreak(interimTranscript);
+        console.log('interimTranscript', interimTranscript);
+        fireCommand(interimTranscript);
+    }
+    
 };
 
 // 음성 인식 에러 처리
@@ -786,14 +792,17 @@ function fireCommand(string) {
     var ws = string.split(" ");
     console.log(ws, ws.length);
     for(var i=0;i<ws.length;i++){
+        if (ws[i] == '') {
+            continue;
+        }
         // console.log(ws[i], typeof(ws[i]), w1, typeof(w1)); // ~~, string
-        if(userID == 1 && (ws[i] == w1 || ws[i] == capitalize(w1))) {
+        else if(userID == 1 && (ws[i] == w1 || ws[i] == w1)) {
             console.log(ws[i], "Fobidden word!!!!!!!!!!!");
         }
-        else if (userID == 2 && (ws[i] == w2 || ws[i] == capitalize(w2))) {
+        else if (userID == 2 && (ws[i] == w2 || ws[i] == w2)) {
             console.log(ws[i], "Fobidden word!!!!!!!!!!!");
         }
-        else if (userID == 3 && (ws[i] == w3 || ws[i] == capitalize(w3))) {
+        else if (userID == 3 && (ws[i] == w3 || ws[i] == w3)) {
             console.log(ws[i], "Fobidden word!!!!!!!!!!!");
         }
         
@@ -808,15 +817,6 @@ function linebreak(s) {
     return s.replace(TWO_LINE, '<p></p>').replace(ONE_LINE, '<br>');
 }
 
-/**
- * 첫문자를 대문자로 변환
- * @param {string} s
- */
-function capitalize(s) {
-    return s.replace(FIRST_CHAR, function (m) {
-        return m.toUpperCase();
-    });
-}
 
 // 음성 인식 트리거
 function start() {
@@ -833,3 +833,5 @@ function start() {
 }
 
 init();
+
+
