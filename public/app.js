@@ -40,15 +40,30 @@ let userID = null;
 let w1 = null;
 let w2 = null;
 let w3 = null;
-let flag_game = false;
+let flag = [0, 0, 0];
+let stop_recog = false;
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+const language = 'en-US'; //'ko-KR'
+const words = ["gwangju", "science", "work", "study", "college", "team", "startup", "math", "Gwangju", "Science", "Work", "Study", "College", "Team", "Startup", "Math"];
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-// recognition.lang = 'en-US'; //'ko-KR'
-var words = ["gwangju", "science", "work", "study", "college", "team", "startup", "math"];
+const FIRST_CHAR = /\S/;
+const TWO_LINE = /\n\n/g;
+const ONE_LINE = /\n/g;
 
-/////////////////////////////////////////////////////////////////////////////////////////////
+const recognition = new webkitSpeechRecognition();
+const $btnMic = document.querySelector('#btn-mic');
+// const $btnMic = document.querySelector('#playBtn');
+
+let isRecognizing = false;
+let ignoreEndProcess = true;
+let finalTranscript = '';
+
+recognition.continuous = true;
+recognition.interimResults = true;
 
 
 function init() {
@@ -57,7 +72,13 @@ function init() {
     document.querySelector("#createBtn").addEventListener("click", createRoom);
     document.querySelector("#joinBtn").addEventListener("click", joinRoom);
     document.querySelector("#playBtn").addEventListener("click", playgame);
-    
+
+    // $btnMic.addEventListener('click', start);
+    $btnMic.addEventListener('click', () => {
+        // const text = final_span.innerText || defaultMsg;
+        start();
+      });
+
     roomDialog = new mdc.dialog.MDCDialog(document.querySelector("#room-dialog"));
 }
 
@@ -507,6 +528,7 @@ async function openUserMedia(e) {
 async function playgame(PeerConnection) {
     flag_game = true;
     document.querySelector("#playBtn").disabled = true;
+    document.querySelector("#btn-mic").disabled = false;
     document.querySelector(
         "#userid"
     ).innerText = "Your ID is user" + userID;
@@ -581,8 +603,6 @@ async function playgame(PeerConnection) {
     }
 
 }
-
-
 
 // 연결 끊었을 때 실행
 async function hangUp(e) {
@@ -686,6 +706,130 @@ function registerPeerConnectionListeners(peerConnection) {
     peerConnection.addEventListener("iceconnectionstatechange ", () => {
         console.log(`ICE connection state change: ${peerConnection.iceConnectionState}`);
     });
+}
+
+// 음성 인식 시작 처리
+recognition.onstart = function () {
+    console.log('onstart', arguments);
+    isRecognizing = true;
+    document.querySelector("#btn-mic").disabled = true;
+};
+
+// 음성 인식 종료 처리
+ recognition.onend = function () {
+    document.querySelector("#btn-mic").disabled = false;
+    console.log('onend', arguments);
+    isRecognizing = false;
+
+    if (ignoreEndProcess) {
+        return false;
+    }
+
+    // Do end process
+    recording_state.className = 'off';
+    console.log('off')
+    if (!finalTranscript) {
+    console.log('empty finalTranscript');
+    return false;
+    }
+    
+};
+
+
+// 음성 인식 결과 처리
+recognition.onresult = function (event) {
+    console.log('onresult', event);
+
+    let interimTranscript = '';
+    if (typeof event.results === 'undefined') {
+        recognition.onend = null;
+        recognition.stop();
+        return;
+    }
+
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const transcript = event.results[i][0].transcript;
+
+        if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+        } else {
+            interimTranscript += transcript;
+        }
+    }
+
+    finalTranscript = capitalize(finalTranscript); // 앞글자 대문자화 취소
+    final_span.innerHTML = linebreak(finalTranscript);
+    interim_span.innerHTML = linebreak(interimTranscript);
+
+    console.log('finalTranscript', finalTranscript);
+    console.log('interimTranscript', interimTranscript);
+    fireCommand(interimTranscript);
+};
+
+// 음성 인식 에러 처리
+recognition.onerror = function (event) {
+    console.log('onerror', event);
+
+    if (event.error.match(/no-speech|audio-capture|not-allowed/)) {
+        ignoreEndProcess = true;
+    }
+
+    document.querySelector("#btn-mic").disabled = false;
+};
+
+/**
+ * 명령어 처리
+ * @param string
+ */
+function fireCommand(string) {
+    console.log("Recognition:" + string);
+    var ws = string.split(" ");
+    console.log(ws, ws.length);
+    for(var i=0;i<ws.length;i++){
+        // console.log(ws[i], typeof(ws[i]), w1, typeof(w1)); // ~~, string
+        if(userID == 1 && (ws[i] == w1 || ws[i] == capitalize(w1))) {
+            console.log(ws[i], "Fobidden word!!!!!!!!!!!");
+        }
+        else if (userID == 2 && (ws[i] == w2 || ws[i] == capitalize(w2))) {
+            console.log(ws[i], "Fobidden word!!!!!!!!!!!");
+        }
+        else if (userID == 3 && (ws[i] == w3 || ws[i] == capitalize(w3))) {
+            console.log(ws[i], "Fobidden word!!!!!!!!!!!");
+        }
+        
+    }
+}
+
+/**
+* 개행 처리
+* @param {string} s
+*/
+function linebreak(s) {
+    return s.replace(TWO_LINE, '<p></p>').replace(ONE_LINE, '<br>');
+}
+
+/**
+ * 첫문자를 대문자로 변환
+ * @param {string} s
+ */
+function capitalize(s) {
+    return s.replace(FIRST_CHAR, function (m) {
+        return m.toUpperCase();
+    });
+}
+
+// 음성 인식 트리거
+function start() {
+    if (isRecognizing) {
+        recognition.stop();
+        return;
+    }
+    recognition.lang = language;
+    recognition.start();
+
+    finalTranscript = '';
+    final_span.innerHTML = '';
+    interim_span.innerHTML = '';
 }
 
 init();
