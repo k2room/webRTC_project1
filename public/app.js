@@ -47,7 +47,7 @@ let flag3 = true;
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 const language = 'en-US'; //'ko-KR'
-const words = ["gwangju", "science", "work", "study", "college", "team"];
+const words = ["gwangju", "science", "work", "study", "college", "team", "startup", "math", "Gwangju", "Science", "Work", "Study", "College", "Team", "Startup", "Math"];
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -63,7 +63,7 @@ let isRecognizing = false;
 let ignoreEndProcess = true;
 let finalTranscript = '';
 
-recognition.continuous = true; ////// true
+recognition.continuous = true;
 recognition.interimResults = true;
 
 
@@ -529,7 +529,9 @@ async function openUserMedia(e) {
 async function playgame(PeerConnection) {
     document.querySelector("#playBtn").disabled = true;
     document.querySelector("#btn-mic").disabled = false;
-    document.querySelector("#userid").innerText = "Your ID is user" + userID;
+    document.querySelector(
+        "#userid"
+    ).innerText = "Your ID is user" + userID;
 
     // var words = ["gwangju", "science", "work", "study", "college", "team", "startup", "math"]; 
     // userID == 1이면 랜덤리스트 업데이트
@@ -823,6 +825,15 @@ function linebreak(s) {
     return s.replace(TWO_LINE, '<p></p>').replace(ONE_LINE, '<br>');
 }
 
+/**
+ * 첫문자를 대문자로 변환
+ * @param {string} s
+ */
+function capitalize(s) {
+    return s.replace(FIRST_CHAR, function (m) {
+        return m.toUpperCase();
+    });
+}
 
 // 음성 인식 트리거
 function start() {
