@@ -37,9 +37,12 @@ let roomDialog = null;
 let roomId = null;
 let exists2 = false;
 let userID = null;
-let w1 = null;
+let w1 = null; // user1's forbidden word
 let w2 = null;
 let w3 = null;
+let flag1 = true; // user1 said forbidden work or not
+let flag2 = true;
+let flag3 = true;
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -524,7 +527,6 @@ async function openUserMedia(e) {
 }
 
 async function playgame(PeerConnection) {
-    flag_game = true;
     document.querySelector("#playBtn").disabled = true;
     document.querySelector("#btn-mic").disabled = false;
     document.querySelector("#userid").innerText = "Your ID is user" + userID;
@@ -533,10 +535,11 @@ async function playgame(PeerConnection) {
     // userID == 1이면 랜덤리스트 업데이트
     if (userID == 1) {
         let randomlist = [];
-        while (words.length > 5) {
+        for(var i=0;i<3;i++) {
             const list = words.splice(Math.floor(Math.random() * words.length), 1)[0];
             randomlist.push(list);
         }
+        // console.log('randomlist', randomlist);
         w1 = randomlist[0];
         w2 = randomlist[1];
         w3 = randomlist[2];
@@ -566,19 +569,11 @@ async function playgame(PeerConnection) {
         const roomRef = db.collection("rooms").doc(roomId);
         const roomSnapshot = await roomRef.get();
         if (userID == 2) {
-            var wordlist = {
-                word1: roomSnapshot.data().word1,
-                word2: roomSnapshot.data().word2,
-                word3: roomSnapshot.data().word3
-            };
-            console.log(wordlist);
+            const forbidden2 = roomSnapshot.data().word2;
+            console.log(forbidden2);
         } else if (userID == 3) {
-            var wordlist = {
-                word1: roomSnapshot.data().word1,
-                word2: roomSnapshot.data().word2,
-                word3: roomSnapshot.data().word3
-            };
-            console.log(wordlist);
+            const forbidden3 = roomSnapshot.data().word3;
+            console.log(forbidden3);
         }
     }
     // DB에서 word(금칙어) 불러오기 
@@ -791,22 +786,36 @@ function fireCommand(string) {
     console.log("Recognition:" + string);
     var ws = string.split(" ");
     console.log(ws, ws.length);
+
+    var flags = {
+        flag1: flag1,
+        flag2: flag2,
+        flag3: flag3
+    };
+
     for(var i=0;i<ws.length;i++){
         if (ws[i] == '') {
             continue;
         }
         // console.log(ws[i], typeof(ws[i]), w1, typeof(w1)); // ~~, string
-        else if(userID == 1 && (ws[i] == w1 || ws[i] == w1)) {
+        else if(userID == 1 && (ws[i].toLowerCase() == w1 || ws[i].toLowerCase() == w1)) {
+            flag1 = false;
             console.log(ws[i], "Fobidden word!!!!!!!!!!!");
         }
-        else if (userID == 2 && (ws[i] == w2 || ws[i] == w2)) {
+        else if (userID == 2 && (ws[i].toLowerCase() == w2 || ws[i].toLowerCase() == w2)) {
+            flag2 = false;
             console.log(ws[i], "Fobidden word!!!!!!!!!!!");
         }
-        else if (userID == 3 && (ws[i] == w3 || ws[i] == w3)) {
+        else if (userID == 3 && (ws[i].toLowerCase() == w3 || ws[i].toLowerCase() == w3)) {
+            flag3 = false;
             console.log(ws[i], "Fobidden word!!!!!!!!!!!");
         }
         
     }
+    
+    const db = firebase.firestore();
+    const roomRef = db.collection("rooms").doc(roomId);
+    roomRef.update(flags);
 }
 
 /**
