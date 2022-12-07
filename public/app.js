@@ -842,5 +842,3 @@ function start() {
 }
 
 init();
-
-
