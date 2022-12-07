@@ -37,9 +37,9 @@ let roomDialog = null;
 let roomId = null;
 let exists2 = false;
 let userID = null;
-var w1 = null; // user1's forbidden word
-var w2 = null;
-var w3 = null;
+var forbidden1 = null; // user1's forbidden word
+var forbidden2 = null;
+var forbidden3 = null;
 var flags = {
     flag1: true,
     flag2: true,
@@ -79,7 +79,7 @@ function init() {
     // $btnMic.addEventListener('click', start);
     $btnMic.addEventListener('click', () => {
         // const text = final_span.innerText || defaultMsg;
-        start();
+        startRecognition();
     });
 
     roomDialog = new mdc.dialog.MDCDialog(document.querySelector("#room-dialog"));
@@ -532,8 +532,21 @@ async function playgame(PeerConnection) {
     document.querySelector("#playBtn").disabled = true;
     document.querySelector("#btn-mic").disabled = false;
     document.querySelector(
-        "#userid"
+        "#userDefinition"
     ).innerText = "Your ID is user" + userID;
+
+    document.querySelector("#userId_local").innerText = "your video";
+    if (userID == 1) {
+        document.querySelector("#userId_A").innerText = "User2";
+        document.querySelector("#userId_B").innerText = "User3"; 
+    }
+    else if (userID == 2) {
+        document.querySelector("#userId_A").innerText = "User1";
+        document.querySelector("#userId_B").innerText = "User3";
+    } else if (userID == 3) {
+        document.querySelector("#userId_A").innerText = "User1";
+        document.querySelector("#userId_B").innerText = "User2";
+    }
 
     // var words = ["gwangju", "science", "work", "study", "college", "team", "startup", "math"]; 
     // userID == 1이면 랜덤리스트 업데이트
@@ -544,22 +557,18 @@ async function playgame(PeerConnection) {
             randomlist.push(list);
         }
         // console.log('randomlist', randomlist);
-        w1 = randomlist[0];
-        w2 = randomlist[1];
-        w3 = randomlist[2];
+        forbidden1 = randomlist[0];
+        forbidden2 = randomlist[1];
+        forbidden3 = randomlist[2];
 
         // user1에게 user2와 user3의 금지어 보여주기
-        document.querySelector(
-            "#forbiddenword1"
-        ).innerText = "Forbidden word of User2 is " + w2;
-        document.querySelector(
-            "#forbiddenword2"
-        ).innerText = " Forbidden word of User3 is " + w3;
+        document.querySelector("#forbiddenword1").innerText = "Forbidden word of User2 is " + forbidden2;
+        document.querySelector("#forbiddenword2").innerText = "Forbidden word of User3 is " + forbidden3;
 
         var wordlist = {
-            word1: w1,
-            word2: w2,
-            word3: w3
+            word1: forbidden1,
+            word2: forbidden2,
+            word3: forbidden3
         };
         // DB에 금칙어 필드 값 추가하기 +  user1,2,3의 금칙어 설정하기
         console.log(wordlist);
@@ -567,48 +576,65 @@ async function playgame(PeerConnection) {
         const roomRef = db.collection("rooms").doc(roomId);
         roomRef.update(wordlist);
         roomRef.update(flags);
-        const forbidden1 = w1;
+
+        const roomRefFlags = roomRef.collection("flags");
+        roomRefFlags.doc("flagsId").set(flags);
     }
-    else {
-        const db = firebase.firestore();
-        const roomRef = db.collection("rooms").doc(roomId);
-        const roomSnapshot = await roomRef.get();
-        if (userID == 2) {
-            const forbidden2 = roomSnapshot.data().word2;
-            console.log(forbidden2);
-        } else if (userID == 3) {
-            const forbidden3 = roomSnapshot.data().word3;
-            console.log(forbidden3);
-        }
-    }
-    // DB에서 word(금칙어) 불러오기 
+
+    // DB에서 word(금칙어) 불러오기
     const db = firebase.firestore();
-    const roomRef = db.collection("rooms").doc(roomId);
-    const snapshot = await roomRef.get();
-    const wo1 = snapshot.data().word1;
-    const wo2 = snapshot.data().word2;
-    const wo3 = snapshot.data().word3;
+    const snapshot = await db.collection("rooms").doc(roomId).get();
+    forbidden1 = snapshot.data().word1;
+    forbidden2 = snapshot.data().word2;
+    forbidden3 = snapshot.data().word3;
 
     // user2와 user3에게 상대방의 금칙어 알려주기 
     if (userID == 2) {
-        document.querySelector(
-            "#forbiddenword1"
-        ).innerText = "Forbidden word of User1 is " + wo1;
-        document.querySelector(
-            "#forbiddenword2"
-        ).innerText = " Forbidden word of User3 is " + wo3;
+        document.querySelector("#forbiddenword1").innerText = "Forbidden word of User1 is " + forbidden1;
+        document.querySelector("#forbiddenword2").innerText = "Forbidden word of User3 is " + forbidden3;
     } else if (userID == 3) {
-        document.querySelector(
-            "#forbiddenword1"
-        ).innerText = "Forbidden word of User1 is " + wo1;
-        document.querySelector(
-            "#forbiddenword2"
-        ).innerText = " Forbidden word of User2 is " + wo2;
+        document.querySelector("#forbiddenword1").innerText = "Forbidden word of User1 is " + forbidden1;
+        document.querySelector("#forbiddenword2").innerText = "Forbidden word of User2 is " + forbidden2;
     }
-    w1 = wo1;
-    w2 = wo2;
-    w3 = wo3;
-    console.log(w1, w2, w3);
+
+    console.log("word1, word2, word3:", forbidden1, forbidden2, forbidden3);
+
+
+
+    const roomRef = db.collection("rooms").doc(roomId);
+    
+    //sojeong
+    roomRef
+        .collection("flags")
+        .onSnapshot((snapshot) => {
+            snapshot.docChanges().forEach(async (change) => {
+                if (change.type === "modified") {
+                    let data = change.doc.data();
+                    console.log(`User status 변화:`, data);
+                    if (userID == 1) {
+                        if (data.flag2 == false) {
+                            remoteStreamA.getTracks().forEach((track) => track.stop());
+                        } else if (data.flag3==false){
+                            remoteStreamB.getTracks().forEach((track) =>track.stop());
+                        }
+                    } else if (userID == 2) {
+                        if (data.flag1 == false) {
+                          remoteStreamA.getTracks().forEach((track) => track.stop());
+                        } else if (data.flag3 == false) {
+                          remoteStreamB.getTracks().forEach((track) => track.stop());
+                        }                        
+                    } else {
+                         if (data.flag1 == false) {
+                           remoteStreamA.getTracks().forEach((track) => track.stop());
+                         } else if (data.flag2 == false) {
+                           remoteStreamB.getTracks().forEach((track) => track.stop());
+                         }                       
+                    }
+                }
+            });
+        });
+    
+
 }
 
 // 연결 끊었을 때 실행
@@ -791,28 +817,42 @@ recognition.onerror = function (event) {
  * @param string
  */
 function fireCommand(string) {
-    console.log("Recognition:" + string + " in user" + userID);
-    var ws = string.split(" ");
-    console.log(ws, ws.length);
-    // console.log(w1, w2, w3, typeof(w1), typeof(w2), typeof(w3));
-    for (var i = 0; i < ws.length; i++) {
-        // console.log(ws[i], typeof(ws[i]), w1, typeof(w1)); // ~~, string
-        if (ws[i] == '') {
-            continue;
-        } else if (userID == 1 && (ws[i].toLowerCase() == w1 || ws[i].toLowerCase() == w1)) {
-            flags.flag1 = false;
-            console.log(ws[i], "Fobidden word!!!!!!!!!!!");
-        } else if (userID == 2 && (ws[i].toLowerCase() == w2 || ws[i].toLowerCase() == w2)) {
-            flags.flag2 = false;
-            console.log(ws[i], "Fobidden word!!!!!!!!!!!");
-        } else if (userID == 3 && (ws[i].toLowerCase() == w3 || ws[i].toLowerCase() == w3)) {
-            flags.flag3 = false;
-            console.log(ws[i], "Fobidden word!!!!!!!!!!!");
-        }
+  console.log("Recognition:" + string + " in user" + userID);
+  var ws = string.split(" ");
+  console.log(ws, ws.length);
+  // console.log(w1, w2, w3, typeof(w1), typeof(w2), typeof(w3));
+  for (var i = 0; i < ws.length; i++) {
+    // console.log(ws[i], typeof(ws[i]), w1, typeof(w1)); // ~~, string
+    if (ws[i] == "") {
+      continue;
+    } else if (
+      userID == 1 &&
+      (ws[i].toLowerCase() == forbidden1 || ws[i].toLowerCase() == forbidden1)
+    ) {
+      flags.flag1 = false;
+      console.log(ws[i], "Fobidden word!!!!!!!!!!!");
+    } else if (
+      userID == 2 &&
+      (ws[i].toLowerCase() == forbidden2 || ws[i].toLowerCase() == forbidden2)
+    ) {
+      flags.flag2 = false;
+      console.log(ws[i], "Fobidden word!!!!!!!!!!!");
+    } else if (
+      userID == 3 &&
+      (ws[i].toLowerCase() == forbidden3 || ws[i].toLowerCase() == forbidden3)
+    ) {
+      flags.flag3 = false;
+      console.log(ws[i], "Fobidden word!!!!!!!!!!!");
     }
-    const db = firebase.firestore();
-    const roomRef = db.collection("rooms").doc(roomId);
-    roomRef.update(flags);
+  }
+  const db = firebase.firestore();
+  const roomRef = db.collection("rooms").doc(roomId);
+  roomRef.update(flags);
+
+  // sojeong
+    const roomRefFlags = roomRef.collection("flags");
+    roomRefFlags.doc("flagsId").set(flags);
+    
 }
 
 /**
@@ -834,7 +874,7 @@ function capitalize(s) {
 }
 
 // 음성 인식 트리거
-function start() {
+function startRecognition() {
     if (isRecognizing) {
         recognition.stop();
         return;
@@ -845,7 +885,7 @@ function start() {
     finalTranscript = '';
     final_span.innerHTML = '';
     interim_span.innerHTML = '';
-    console.log(w1, w2, w3);
+    console.log(forbidden1, forbidden2, forbidden3);
 }
 
 init();
