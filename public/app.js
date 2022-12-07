@@ -78,7 +78,7 @@ function init() {
     $btnMic.addEventListener('click', () => {
         // const text = final_span.innerText || defaultMsg;
         start();
-      });
+    });
 
     roomDialog = new mdc.dialog.MDCDialog(document.querySelector("#room-dialog"));
 }
@@ -535,7 +535,7 @@ async function playgame(PeerConnection) {
     // userID == 1이면 랜덤리스트 업데이트
     if (userID == 1) {
         let randomlist = [];
-        for(var i=0;i<3;i++) {
+        for (var i = 0; i < 3; i++) {
             const list = words.splice(Math.floor(Math.random() * words.length), 1)[0];
             randomlist.push(list);
         }
@@ -715,7 +715,7 @@ recognition.onstart = function () {
 };
 
 // 음성 인식 종료 처리
- recognition.onend = function () {
+recognition.onend = function () {
     document.querySelector("#btn-mic").disabled = false;
     console.log('onend', arguments);
     isRecognizing = false;
@@ -728,10 +728,10 @@ recognition.onstart = function () {
     recording_state.className = 'off';
     console.log('off')
     if (!finalTranscript) {
-    console.log('empty finalTranscript');
-    return false;
+        console.log('empty finalTranscript');
+        return false;
     }
-    
+
 };
 
 
@@ -755,16 +755,16 @@ recognition.onresult = function (event) {
             interimTranscript += transcript;
         }
     }
-    if(finalTranscript != ''){
+    if (finalTranscript != '') {
         final_span.innerHTML = linebreak(finalTranscript);
         console.log('finalTranscript', finalTranscript);
     }
-    if(interimTranscript != ''){
+    if (interimTranscript != '') {
         interim_span.innerHTML = linebreak(interimTranscript);
         console.log('interimTranscript', interimTranscript);
         fireCommand(interimTranscript);
     }
-    
+
 };
 
 // 음성 인식 에러 처리
@@ -793,26 +793,23 @@ function fireCommand(string) {
         flag3: flag3
     };
 
-    for(var i=0;i<ws.length;i++){
+    for (var i = 0; i < ws.length; i++) {
+        // console.log(ws[i], typeof(ws[i]), w1, typeof(w1)); // ~~, string
         if (ws[i] == '') {
             continue;
-        }
-        // console.log(ws[i], typeof(ws[i]), w1, typeof(w1)); // ~~, string
-        else if(userID == 1 && (ws[i].toLowerCase() == w1 || ws[i].toLowerCase() == w1)) {
+        } else if (userID == 1 && (ws[i].toLowerCase() == w1 || ws[i].toLowerCase() == w1)) {
             flag1 = false;
             console.log(ws[i], "Fobidden word!!!!!!!!!!!");
-        }
-        else if (userID == 2 && (ws[i].toLowerCase() == w2 || ws[i].toLowerCase() == w2)) {
+        } else if (userID == 2 && (ws[i].toLowerCase() == w2 || ws[i].toLowerCase() == w2)) {
             flag2 = false;
             console.log(ws[i], "Fobidden word!!!!!!!!!!!");
-        }
-        else if (userID == 3 && (ws[i].toLowerCase() == w3 || ws[i].toLowerCase() == w3)) {
+        } else if (userID == 3 && (ws[i].toLowerCase() == w3 || ws[i].toLowerCase() == w3)) {
             flag3 = false;
             console.log(ws[i], "Fobidden word!!!!!!!!!!!");
         }
-        
+
     }
-    
+
     const db = firebase.firestore();
     const roomRef = db.collection("rooms").doc(roomId);
     roomRef.update(flags);
