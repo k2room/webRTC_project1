@@ -37,11 +37,12 @@ let roomDialog = null;
 let roomId = null;
 let exists2 = false;
 let userID = null;
-let w1 = null;
+let w1 = null; // user1's forbidden word
 let w2 = null;
 let w3 = null;
-let flag = [0, 0, 0];
-let stop_recog = false;
+let flag1 = true; // user1 said forbidden work or not
+let flag2 = true;
+let flag3 = true;
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -77,7 +78,7 @@ function init() {
     $btnMic.addEventListener('click', () => {
         // const text = final_span.innerText || defaultMsg;
         start();
-      });
+    });
 
     roomDialog = new mdc.dialog.MDCDialog(document.querySelector("#room-dialog"));
 }
@@ -526,7 +527,6 @@ async function openUserMedia(e) {
 }
 
 async function playgame(PeerConnection) {
-    flag_game = true;
     document.querySelector("#playBtn").disabled = true;
     document.querySelector("#btn-mic").disabled = false;
     document.querySelector(
@@ -537,10 +537,11 @@ async function playgame(PeerConnection) {
     // userID == 1이면 랜덤리스트 업데이트
     if (userID == 1) {
         let randomlist = [];
-        while (words.length > 5) {
+        for (var i = 0; i < 3; i++) {
             const list = words.splice(Math.floor(Math.random() * words.length), 1)[0];
             randomlist.push(list);
         }
+        // console.log('randomlist', randomlist);
         w1 = randomlist[0];
         w2 = randomlist[1];
         w3 = randomlist[2];
@@ -716,7 +717,7 @@ recognition.onstart = function () {
 };
 
 // 음성 인식 종료 처리
- recognition.onend = function () {
+recognition.onend = function () {
     document.querySelector("#btn-mic").disabled = false;
     console.log('onend', arguments);
     isRecognizing = false;
@@ -729,10 +730,10 @@ recognition.onstart = function () {
     recording_state.className = 'off';
     console.log('off')
     if (!finalTranscript) {
-    console.log('empty finalTranscript');
-    return false;
+        console.log('empty finalTranscript');
+        return false;
     }
-    
+
 };
 
 
@@ -756,14 +757,16 @@ recognition.onresult = function (event) {
             interimTranscript += transcript;
         }
     }
+    if (finalTranscript != '') {
+        final_span.innerHTML = linebreak(finalTranscript);
+        console.log('finalTranscript', finalTranscript);
+    }
+    if (interimTranscript != '') {
+        interim_span.innerHTML = linebreak(interimTranscript);
+        console.log('interimTranscript', interimTranscript);
+        fireCommand(interimTranscript);
+    }
 
-    finalTranscript = capitalize(finalTranscript); // 앞글자 대문자화 취소
-    final_span.innerHTML = linebreak(finalTranscript);
-    interim_span.innerHTML = linebreak(interimTranscript);
-
-    console.log('finalTranscript', finalTranscript);
-    console.log('interimTranscript', interimTranscript);
-    fireCommand(interimTranscript);
 };
 
 // 음성 인식 에러 처리
@@ -785,19 +788,33 @@ function fireCommand(string) {
     console.log("Recognition:" + string);
     var ws = string.split(" ");
     console.log(ws, ws.length);
-    for(var i=0;i<ws.length;i++){
+
+    var flags = {
+        flag1: flag1,
+        flag2: flag2,
+        flag3: flag3
+    };
+
+    for (var i = 0; i < ws.length; i++) {
         // console.log(ws[i], typeof(ws[i]), w1, typeof(w1)); // ~~, string
-        if(userID == 1 && (ws[i] == w1 || ws[i] == capitalize(w1))) {
+        if (ws[i] == '') {
+            continue;
+        } else if (userID == 1 && (ws[i].toLowerCase() == w1 || ws[i].toLowerCase() == w1)) {
+            flag1 = false;
+            console.log(ws[i], "Fobidden word!!!!!!!!!!!");
+        } else if (userID == 2 && (ws[i].toLowerCase() == w2 || ws[i].toLowerCase() == w2)) {
+            flag2 = false;
+            console.log(ws[i], "Fobidden word!!!!!!!!!!!");
+        } else if (userID == 3 && (ws[i].toLowerCase() == w3 || ws[i].toLowerCase() == w3)) {
+            flag3 = false;
             console.log(ws[i], "Fobidden word!!!!!!!!!!!");
         }
-        else if (userID == 2 && (ws[i] == w2 || ws[i] == capitalize(w2))) {
-            console.log(ws[i], "Fobidden word!!!!!!!!!!!");
-        }
-        else if (userID == 3 && (ws[i] == w3 || ws[i] == capitalize(w3))) {
-            console.log(ws[i], "Fobidden word!!!!!!!!!!!");
-        }
-        
+
     }
+
+    const db = firebase.firestore();
+    const roomRef = db.collection("rooms").doc(roomId);
+    roomRef.update(flags);
 }
 
 /**
