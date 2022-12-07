@@ -37,17 +37,19 @@ let roomDialog = null;
 let roomId = null;
 let exists2 = false;
 let userID = null;
-let w1 = null; // user1's forbidden word
-let w2 = null;
-let w3 = null;
-let flag1 = true; // user1 said forbidden work or not
-let flag2 = true;
-let flag3 = true;
+var w1 = null; // user1's forbidden word
+var w2 = null;
+var w3 = null;
+var flags = {
+    flag1: true,
+    flag2: true,
+    flag3: true
+}; // user1 said forbidden work or not
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 const language = 'en-US'; //'ko-KR'
-const words = ["gwangju", "science", "work", "study", "college", "team", "startup", "math", "Gwangju", "Science", "Work", "Study", "College", "Team", "Startup", "Math"];
+const words = ["gwangju", "science", "work", "study", "college", "team", "experiment", "math", "cat"];
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -564,6 +566,7 @@ async function playgame(PeerConnection) {
         const db = firebase.firestore();
         const roomRef = db.collection("rooms").doc(roomId);
         roomRef.update(wordlist);
+        roomRef.update(flags);
         const forbidden1 = w1;
     }
     else {
@@ -602,7 +605,10 @@ async function playgame(PeerConnection) {
             "#forbiddenword2"
         ).innerText = " Forbidden word of User2 is " + wo2;
     }
-
+    w1 = wo1;
+    w2 = wo2;
+    w3 = wo3;
+    console.log(w1, w2, w3);
 }
 
 // 연결 끊었을 때 실행
@@ -785,33 +791,25 @@ recognition.onerror = function (event) {
  * @param string
  */
 function fireCommand(string) {
-    console.log("Recognition:" + string);
+    console.log("Recognition:" + string + " in user" + userID);
     var ws = string.split(" ");
     console.log(ws, ws.length);
-
-    var flags = {
-        flag1: flag1,
-        flag2: flag2,
-        flag3: flag3
-    };
-
+    // console.log(w1, w2, w3, typeof(w1), typeof(w2), typeof(w3));
     for (var i = 0; i < ws.length; i++) {
         // console.log(ws[i], typeof(ws[i]), w1, typeof(w1)); // ~~, string
         if (ws[i] == '') {
             continue;
         } else if (userID == 1 && (ws[i].toLowerCase() == w1 || ws[i].toLowerCase() == w1)) {
-            flag1 = false;
+            flags.flag1 = false;
             console.log(ws[i], "Fobidden word!!!!!!!!!!!");
         } else if (userID == 2 && (ws[i].toLowerCase() == w2 || ws[i].toLowerCase() == w2)) {
-            flag2 = false;
+            flags.flag2 = false;
             console.log(ws[i], "Fobidden word!!!!!!!!!!!");
         } else if (userID == 3 && (ws[i].toLowerCase() == w3 || ws[i].toLowerCase() == w3)) {
-            flag3 = false;
+            flags.flag3 = false;
             console.log(ws[i], "Fobidden word!!!!!!!!!!!");
         }
-
     }
-
     const db = firebase.firestore();
     const roomRef = db.collection("rooms").doc(roomId);
     roomRef.update(flags);
@@ -847,6 +845,7 @@ function start() {
     finalTranscript = '';
     final_span.innerHTML = '';
     interim_span.innerHTML = '';
+    console.log(w1, w2, w3);
 }
 
 init();
