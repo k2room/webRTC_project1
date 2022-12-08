@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -17,6 +18,7 @@
 
     <link rel="stylesheet" type="text/css" href="main.css">
 </head>
+
 <body>
     <h1>You can't say that!</h1>
     <div id="buttons">
@@ -36,9 +38,9 @@
             <i class="material-icons mdc-button__icon" aria-hidden="true">start</i>
             <span class="mdc-button__label">Play</span>
         </button>
-        <button class="mdc-button mdc-button--raised" disabled id="btn-mic">
+        <button class="mdc-button mdc-button--raised" disabled id="micBtn">
             <i class="material-icons mdc-button__icon" aria-hidden="true">start</i>
-            <span class="mdc-button__label">Microphone</span>
+            <span class="mdc-button__label">Mic</span>
         </button>
         <button class="mdc-button mdc-button--raised" disabled id="hangupBtn">
             <i class="material-icons mdc-button__icon" aria-hidden="true">close</i>
@@ -47,25 +49,20 @@
     </div>
     <div>
         <span id="currentRoom"></span>
-    </div>
-    <div id="gameInfo" style="padding:10px">
-        <p>
-            <span id="userDefinition" style="color:black;padding:5px;font-weight:bold;font-size:large;"></span>
-        </p>
+    </div>    
         <p> Rule: </p>
         <p> 1. Maximum player of this game if 3. </p>
         <p> 2. After turning on your video, you can create room or join room by id. </p>
-        <p> 3. Only user1 can start the game by play button. User2 and user3 have to push the button after user1. </p>
-        <p> 4. In the game, everyone is given a random forbidden word. Take turns to talk about the topic. </p>
-        <p> 5. When you say your forbidden word, you lose and your video&audio is turned off! </p>
+        <p> 3. Only user1 can start the game by play button. User2 and user3 have to push the play button after user1. </p>
+        <p> 4. In the game, everyone is given a random forbidden word. </p>
+        <p> 5. Take turns to talk about the topic. You have to push mic button in your turn. </p>
+        <p> 6. When you say your forbidden word, you lose and your video&audio is turned off! </p>
         </p>
-        
-        <h4><span id="topic"></span></h4>
-
-        <div >
-            <h2><span id="outOfGame" style="color:red;font-weight:bold"></span></h2>
-        </div>
-        <span id="waitUser1ToPlay" style="color:blueviolet; font-size:large"></span>
+    <div id="gameInfo" style="padding:5px"></div>
+        <h3><span id="topic"></span></h3>
+        <h4><span id="userDefinition" style="color:black;"></span></h4>
+        <h2><span id="outOfGame" style="color:red;font-weight:bold"></span></h2>
+        <h3><span id="waitUser1ToPlay" style="color:blueviolet"></span></h3>
     </div>
     <div id="videos">
         <div>
@@ -90,12 +87,8 @@
             <video id="remoteVideoB" autoplay playsinline></video>
         </div>
     </div>
-    <div class="mdc-dialog"
-         id="room-dialog"
-         role="alertdialog"
-         aria-modal="true"
-         aria-labelledby="my-dialog-title"
-         aria-describedby="my-dialog-content">
+    <div class="mdc-dialog" id="room-dialog" role="alertdialog" aria-modal="true" aria-labelledby="my-dialog-title"
+        aria-describedby="my-dialog-content">
         <div class="mdc-dialog__container">
             <div class="mdc-dialog__surface">
                 <h2 class="mdc-dialog__title" id="my-dialog-title">Join room</h2>
@@ -112,7 +105,7 @@
                         <span class="mdc-button__label">Cancel</span>
                     </button>
                     <button id="confirmJoinBtn" type="button" class="mdc-button mdc-dialog__button"
-                            data-mdc-dialog-action="yes">
+                        data-mdc-dialog-action="yes">
                         <span class="mdc-button__label">Join</span>
                     </button>
                 </footer>
@@ -126,4 +119,5 @@
     </div>
     <script src="app.js"></script>
 </body>
+
 </html>
