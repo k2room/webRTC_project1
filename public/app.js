@@ -531,9 +531,7 @@ async function openUserMedia(e) {
 async function playgame(PeerConnection) {
     document.querySelector("#playBtn").disabled = true;
     document.querySelector("#btn-mic").disabled = false;
-    document.querySelector(
-        "#userDefinition"
-    ).innerText = "Your ID is user" + userID;
+    document.querySelector("#userDefinition").innerText = "Your ID is user" + userID;
 
     document.querySelector("#userId_local").innerText = "your video";
     if (userID == 1) {
@@ -551,6 +549,7 @@ async function playgame(PeerConnection) {
     // var words = ["gwangju", "science", "work", "study", "college", "team", "startup", "math"]; 
     // userID == 1이면 랜덤리스트 업데이트
     if (userID == 1) {
+        
         let randomlist = [];
         for (var i = 0; i < 3; i++) {
             const list = words.splice(Math.floor(Math.random() * words.length), 1)[0];
@@ -562,8 +561,10 @@ async function playgame(PeerConnection) {
         forbidden3 = randomlist[2];
 
         // user1에게 user2와 user3의 금지어 보여주기
-        document.querySelector("#forbiddenword1").innerText = "Forbidden word of User2 is " + forbidden2;
-        document.querySelector("#forbiddenword2").innerText = "Forbidden word of User3 is " + forbidden3;
+        document.querySelector("#topic").innerText = 'The topic of the game is "GIST"';
+        document.querySelector("#localWord").innerText = "Guess your's!";
+        document.querySelector("#forbiddenword1").innerText = "Forbidden word: " + forbidden2;
+        document.querySelector("#forbiddenword2").innerText = "Forbidden word: " + forbidden3;
 
         var wordlist = {
             word1: forbidden1,
@@ -579,26 +580,36 @@ async function playgame(PeerConnection) {
 
         const roomRefFlags = roomRef.collection("flags");
         roomRefFlags.doc("flagsId").set(flags);
+    } else {
+      // DB에서 word(금칙어) 불러오기
+        const db = firebase.firestore();
+        const snapshot = await db.collection("rooms").doc(roomId).get();
+        
+      // 단어가 db에 있으면 (user1이 play를 눌렀으면)
+        if (snapshot.data().word1 != undefined) {
+            document.querySelector("#topic").innerText = 'The topic of the game is "GIST"';
+            document.querySelector("#localWord").innerText = "Guess your's!";
+            document.querySelector("#waitUser1ToPlay").innerText ="";
+
+        forbidden1 = snapshot.data().word1;
+        forbidden2 = snapshot.data().word2;
+        forbidden3 = snapshot.data().word3;
+        // user2와 user3에게 상대방의 금칙어 알려주기
+        if (userID == 2) {
+          document.querySelector("#forbiddenword1").innerText = "Forbidden word: " + forbidden1;
+          document.querySelector("#forbiddenword2").innerText = "Forbidden word: " + forbidden3;
+        } else if (userID == 3) {
+          document.querySelector("#forbiddenword1").innerText = "Forbidden word: " + forbidden1;
+          document.querySelector("#forbiddenword2").innerText = "Forbidden word: " + forbidden2;
+        }
+        console.log("word1, word2, word3:", forbidden1, forbidden2, forbidden3);
+      } else {
+          document.querySelector('#waitUser1ToPlay').innerText = "User1 did not distributed words. Press the button again."
+          document.querySelector("#playBtn").disabled = false;
+
+      }
+
     }
-
-    // DB에서 word(금칙어) 불러오기
-    const db = firebase.firestore();
-    const snapshot = await db.collection("rooms").doc(roomId).get();
-    forbidden1 = snapshot.data().word1;
-    forbidden2 = snapshot.data().word2;
-    forbidden3 = snapshot.data().word3;
-
-    // user2와 user3에게 상대방의 금칙어 알려주기 
-    if (userID == 2) {
-        document.querySelector("#forbiddenword1").innerText = "Forbidden word of User1 is " + forbidden1;
-        document.querySelector("#forbiddenword2").innerText = "Forbidden word of User3 is " + forbidden3;
-    } else if (userID == 3) {
-        document.querySelector("#forbiddenword1").innerText = "Forbidden word of User1 is " + forbidden1;
-        document.querySelector("#forbiddenword2").innerText = "Forbidden word of User2 is " + forbidden2;
-    }
-
-    console.log("word1, word2, word3:", forbidden1, forbidden2, forbidden3);
-
 
 
     const roomRef = db.collection("rooms").doc(roomId);
@@ -625,7 +636,7 @@ async function playgame(PeerConnection) {
                         }                        
                     } else {
                          if (data.flag1 == false) {
-                           remoteStreamA.getTracks().forEach((track) => track.stop());
+                             remoteStreamA.getTracks().forEach((track) => track.stop());
                          } else if (data.flag2 == false) {
                            remoteStreamB.getTracks().forEach((track) => track.stop());
                          }                       
@@ -825,24 +836,24 @@ function fireCommand(string) {
     // console.log(ws[i], typeof(ws[i]), w1, typeof(w1)); // ~~, string
     if (ws[i] == "") {
       continue;
-    } else if (
-      userID == 1 &&
-      (ws[i].toLowerCase() == forbidden1 || ws[i].toLowerCase() == forbidden1)
-    ) {
+    } else if (userID == 1 && ws[i].toLowerCase() == forbidden1) {
       flags.flag1 = false;
-      console.log(ws[i], "Fobidden word!!!!!!!!!!!");
-    } else if (
-      userID == 2 &&
-      (ws[i].toLowerCase() == forbidden2 || ws[i].toLowerCase() == forbidden2)
-    ) {
+        document.querySelector("#outOfGame").innerText =
+          "You said your forbidden word!! You are out of Game:(";
+        localStream.getTracks().forEach((track) => track.stop());
+
+    
+    } else if (userID == 2 && ws[i].toLowerCase() == forbidden2) {
       flags.flag2 = false;
-      console.log(ws[i], "Fobidden word!!!!!!!!!!!");
-    } else if (
-      userID == 3 &&
-      (ws[i].toLowerCase() == forbidden3 || ws[i].toLowerCase() == forbidden3)
-    ) {
+        document.querySelector("#outOfGame").innerText =
+          "You said your forbidden word!! You are out of Game:(";
+        localStream.getTracks().forEach((track) => track.stop());
+        
+    } else if (userID == 3 && ws[i].toLowerCase() == forbidden3) {
       flags.flag3 = false;
-      console.log(ws[i], "Fobidden word!!!!!!!!!!!");
+        document.querySelector("#outOfGame").innerText =
+          "You said your forbidden word!! You are out of Game:(";
+        localStream.getTracks().forEach((track) => track.stop());        
     }
   }
   const db = firebase.firestore();

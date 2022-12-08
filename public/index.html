@@ -45,27 +45,50 @@
             <span class="mdc-button__label">Hangup</span>
         </button>
     </div>
-    <h4> The theme of the game is "GIST" </h4>
     <div>
         <span id="currentRoom"></span>
     </div>
-    <div style="color:black;padding:5px;font-weight:bold">
-        <span id="userDefinition"></span>
-    </div>
-    <div style="color:red;padding:7px;font-weight:bold">
-        <span id="forbiddenword1"></span>
-    </div>
-    <div style="color:blue;padding:7px;font-weight:bold">
-        <span id="forbiddenword2"></span>
-    </div>
+    <div id="gameInfo" style="padding:10px">
+        <p>
+            <span id="userDefinition" style="color:black;padding:5px;font-weight:bold;font-size:large;"></span>
+        </p>
+        <p> Rule: </p>
+        <p> 1. Maximum player of this game if 3. </p>
+        <p> 2. After turning on your video, you can create room or join room by id. </p>
+        <p> 3. Only user1 can start the game by play button. User2 and user3 have to push the button after user1. </p>
+        <p> 4. In the game, everyone is given a random forbidden word. Take turns to talk about the topic. </p>
+        <p> 5. When you say your forbidden word, you lose and your video&audio is turned off! </p>
+        </p>
+        
+        <h4><span id="topic"></span></h4>
 
+        <div >
+            <h2><span id="outOfGame" style="color:red;font-weight:bold"></span></h2>
+        </div>
+        <span id="waitUser1ToPlay" style="color:blueviolet; font-size:large"></span>
+    </div>
     <div id="videos">
-        <span id="userId_local"></span>
-        <video id="localVideo" muted autoplay playsinline></video>
-        <span id="userId_A"></span>
-        <video id="remoteVideoA" autoplay playsinline></video>
-        <span id="userId_B"></span>
-        <video id="remoteVideoB" autoplay playsinline></video>
+        <div>
+            <p><span id="userId_local"></span></p>
+            <p style="color:blue;padding:7px;font-weight:bold">
+                <span id="localWord"></span>
+            </p>
+            <video id="localVideo" muted autoplay playsinline></video>
+        </div>
+        <div>
+            <p><span id="userId_A"></span></p>
+            <p style="color:blue;padding:7px;font-weight:bold">
+                <span id="forbiddenword1"></span>
+            </p>
+            <video id="remoteVideoA" autoplay playsinline></video>
+        </div>
+        <div>
+            <p><span id="userId_B"></span></p>
+            <p style="color:blue;padding:7px;font-weight:bold">
+                <span id="forbiddenword2"></span>
+            </p>
+            <video id="remoteVideoB" autoplay playsinline></video>
+        </div>
     </div>
     <div class="mdc-dialog"
          id="room-dialog"
