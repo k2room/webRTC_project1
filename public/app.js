@@ -1,31 +1,14 @@
 mdc.ripple.MDCRipple.attachTo(document.querySelector(".mdc-button"));
 
-const configuration12 = {
+const configuration = {
   iceServers: [
     {
-      urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
+      urls: ["stun:stun1.l.google.com:19302"],
     },
   ],
   iceCandidatePoolSize: 30,
 };
 
-const configuration23 = {
-  iceServers: [
-    {
-      urls: ["stun:stun2.l.google.com:19302", "stun:stun3.l.google.com:19302"],
-    },
-  ],
-  iceCandidatePoolSize: 30,
-};
-
-const configuration31 = {
-  iceServers: [
-    {
-      urls: ["stun:stun3.l.google.com:19302", "stun:stun1.l.google.com:19302"],
-    },
-  ],
-  iceCandidatePoolSize: 30,
-};
 
 let peerConnection12 = null;
 let peerConnection23 = null;
@@ -105,11 +88,11 @@ async function createRoom() {
   const roomRef = await db.collection("rooms").doc();
 
   // 1&2, 1&3 사이의 RTCPeerConnection 생성
-  console.log("Create PeerConnection with configuration: ", configuration12);
-  peerConnection12 = new RTCPeerConnection(configuration12);
+  console.log("Create PeerConnection with configuration: ", configuration);
+  peerConnection12 = new RTCPeerConnection(configuration);
 
-  console.log("Create PeerConnection with configuration: ", configuration31);
-  peerConnection31 = new RTCPeerConnection(configuration31);
+  console.log("Create PeerConnection with configuration: ", configuration);
+  peerConnection31 = new RTCPeerConnection(configuration);
 
   registerPeerConnectionListeners(peerConnection12);
   registerPeerConnectionListeners(peerConnection31);
@@ -268,13 +251,6 @@ async function joinRoomById(roomId) {
       userID = 3;
     }
 
-    let configuration = null;
-    if (userID == 2) {
-      configuration = configuration12;
-    } else if (userID == 3) {
-      configuration = configuration31;
-    }
-
     // user1과의 연결에 사용될 RTCPeerConnection 생성
     console.log("Create PeerConnection with configuration: ", configuration);
     let peerConnectionWith1 = new RTCPeerConnection(configuration);
@@ -375,20 +351,17 @@ async function joinRoomById(roomId) {
         snapshot.docChanges().forEach(async (change) => {
           if (change.type === "added") {
             let data = change.doc.data();
-            console.log(
-              `Got new remote ICE candidate: ${JSON.stringify(data)}`
-            );
-            await peerConnectionWith1.addIceCandidate(
-              new RTCIceCandidate(data)
-            );
+            console.log(`Got new remote ICE candidate: ${JSON.stringify(data)}`);
+            await peerConnectionWith1.addIceCandidate(new RTCIceCandidate(data));
           }
         });
       });
+
     }
 
     // 2&3 연결하는 RTCConnection 생성
-    console.log("Create PeerConnection with configuration: ", configuration23);
-    peerConnection23 = new RTCPeerConnection(configuration23);
+    console.log("Create PeerConnection with configuration: ", configuration);
+    peerConnection23 = new RTCPeerConnection(configuration);
 
     registerPeerConnectionListeners(peerConnection23);
     localStream.getTracks().forEach((track) => {
@@ -462,7 +435,7 @@ async function joinRoomById(roomId) {
           }
         });
       });
-      // Listen for remote ICE callee candidates below
+      // Listen for remote ICE callee candidates above
     } else if (userID == 3) {
       // callee candidate에 user3 추가
       const calleeCandidatesCollection23 =
@@ -750,6 +723,14 @@ async function hangUp(e) {
     callerCandidate31.forEach(async (candidate) => {
       await candidate.ref.delete();
     });
+
+    const flags = await roomRef
+      .collection("flags")
+      .get();
+    flags.forEach(async (candidate) => {
+      await candidate.ref.delete();
+    });
+    
     await roomRef.delete();
   }
 
