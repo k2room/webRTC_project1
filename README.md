@@ -1,14 +1,19 @@
-# Firebase + WebRTC Codelab
-### Full code solution can be found under the branch: _solution_
-This is the GitHub repo for the FirebaseRTC codelab. This will teach you how 
-to use Firebase Cloud Firestore for signalling in a WebRTC video chat application.
+# Setting the Environment 
+Firebase + WebRTC Codelab : See http://webrtc.org for details.
 
-The solution to this codelab can be seen in the _solution_ branch.
-
-See http://webrtc.org for details.
+Before starting this codelab, make sure that you've installed:
+ npm which typically comes with Node.js - Node LTS is recommended.
+ see https://nodejs.org/ for details.
 
 # command on cmd
-firebase serve --only hosting
+Run the following Firebase CLI command:
+  firebase serve --only hosting
+
+Your command line should display the following response:
+  hosting: Local server: http://localhost:5000
+
+We're using the Firebase Hosting emulator to serve our app locally. The web app should now be available from http://localhost:5000.
+Open your app at http://localhost:5000.
 
 # troubleshooting
 js update : 
